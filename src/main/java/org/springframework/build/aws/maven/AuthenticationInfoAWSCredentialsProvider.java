@@ -16,23 +16,25 @@
 
 package org.springframework.build.aws.maven;
 
-import org.apache.maven.wagon.proxy.ProxyInfo;
-import org.apache.maven.wagon.proxy.ProxyInfoProvider;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import org.apache.maven.wagon.authentication.AuthenticationInfo;
 
-final class NullProtectingProxyInfoProvider implements ProxyInfoProvider {
+final class AuthenticationInfoAWSCredentialsProvider implements AWSCredentialsProvider {
 
-    private final ProxyInfo proxyInfo;
+    private final AuthenticationInfo authenticationInfo;
 
-    NullProtectingProxyInfoProvider(ProxyInfo proxyInfo) {
-        this.proxyInfo = proxyInfo;
+    AuthenticationInfoAWSCredentialsProvider(AuthenticationInfo authenticationInfo) {
+        this.authenticationInfo = authenticationInfo;
     }
 
     @Override
-    public ProxyInfo getProxyInfo(String protocol) {
-        if ((protocol == null) || (this.proxyInfo == null) || protocol.equalsIgnoreCase(this.proxyInfo.getType())) {
-            return this.proxyInfo;
-        } else {
-            return null;
-        }
+    public AWSCredentials getCredentials() {
+        return this.authenticationInfo != null ? new AuthenticationInfoAWSCredentials(this.authenticationInfo) : null;
     }
+
+    @Override
+    public void refresh() {
+    }
+
 }

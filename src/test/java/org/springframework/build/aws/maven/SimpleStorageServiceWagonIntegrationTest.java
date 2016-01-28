@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 the original author or authors.
+ * Copyright 2010-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,9 @@
 
 package org.springframework.build.aws.maven;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.build.aws.maven.matchers.Matchers.eq;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.*;
 import org.apache.maven.wagon.ResourceDoesNotExistException;
 import org.apache.maven.wagon.TransferFailedException;
 import org.apache.maven.wagon.WagonException;
@@ -42,19 +27,20 @@ import org.apache.maven.wagon.repository.Repository;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
-public final class SimpleStorageServiceWagonIntegrationTests {
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.build.aws.maven.matchers.Matchers.eq;
+
+public final class SimpleStorageServiceWagonIntegrationTest {
 
     private static final String FILE_NAME = "robots.txt";
 
@@ -74,7 +60,9 @@ public final class SimpleStorageServiceWagonIntegrationTests {
 
     private final TransferProgress transferProgress = mock(TransferProgress.class);
 
-    private final SimpleStorageServiceWagon wagon = new SimpleStorageServiceWagon(this.amazonS3, BUCKET_NAME, BASE_DIRECTORY);
+    private final SimpleStorageServiceWagon wagon =
+            new SimpleStorageServiceWagon(this.amazonS3, BUCKET_NAME, BASE_DIRECTORY);
+
 
     @Test
     public void regionConnections() throws WagonException {
@@ -82,21 +70,9 @@ public final class SimpleStorageServiceWagonIntegrationTests {
 
         AuthenticationInfo authenticationInfo = new AuthenticationInfo();
         authenticationInfo.setUserName(System.getProperty("access.key"));
-        authenticationInfo.setPassphrase(System.getProperty("secret.key"));
+        authenticationInfo.setPassword(System.getProperty("secret.key"));
 
-        String[] buckets = new String[] { //
-        "test.aws-maven.ireland", //
-            "test.aws-maven.eu", //
-            "test.aws-maven.northern-california", //
-            "test.aws-maven.oregon", //
-            "test.aws-maven.sao-paulo", //
-            "test.aws-maven.singapore", //
-            "test.aws-maven.sydney", //
-            "test.aws-maven.tokyo", //
-            "test.aws-maven.us" //
-        };
-
-        for (String bucket : buckets) {
+        for (String bucket : getBuckets()) {
             Repository repository = new Repository("test", String.format("s3://%s/", bucket));
             remoteConnectingWagon.connectToRepository(repository, authenticationInfo, null);
             assertNotNull(remoteConnectingWagon.getFileList(""));
@@ -104,25 +80,48 @@ public final class SimpleStorageServiceWagonIntegrationTests {
         }
     }
 
+    private List<String> getBuckets() {
+        List<String> buckets = new ArrayList<String>();
+
+        String value = System.getProperty("buckets");
+        if (value != null) {
+            for (String bucket : value.split(",")) {
+                buckets.add(bucket.trim());
+            }
+        } else {
+            buckets.add("test.aws-maven.ireland");
+            buckets.add("test.aws-maven.eu");
+            buckets.add("test.aws-maven.northern-california");
+            buckets.add("test.aws-maven.oregon");
+            buckets.add("test.aws-maven.sao-paulo");
+            buckets.add("test.aws-maven.singapore");
+            buckets.add("test.aws-maven.sydney");
+            buckets.add("test.aws-maven.tokyo");
+            buckets.add("test.aws-maven.us");
+        }
+
+        return buckets;
+    }
+
     @Test
     public void doesRemoteResourceExistExists() {
-        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenReturn(
-            this.objectMetadata);
+        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenReturn(this.objectMetadata);
         assertTrue(this.wagon.doesRemoteResourceExist(FILE_NAME));
     }
 
     @Test
     public void doesRemoteResourceExistDoesNotExist() {
-        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenThrow(
-            new AmazonServiceException(""));
+        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenThrow(new AmazonServiceException(""));
         assertFalse(this.wagon.doesRemoteResourceExist(FILE_NAME));
     }
 
     @Test
     public void isRemoteResourceNewerNewer() throws ResourceDoesNotExistException {
         when(this.objectMetadata.getLastModified()).thenReturn(new Date());
-        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenReturn(
-            this.objectMetadata);
+        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenReturn(this.objectMetadata);
 
         assertTrue(this.wagon.isRemoteResourceNewer(FILE_NAME, 0));
     }
@@ -130,33 +129,33 @@ public final class SimpleStorageServiceWagonIntegrationTests {
     @Test
     public void isRemoteResourceNewerOlder() throws ResourceDoesNotExistException {
         when(this.objectMetadata.getLastModified()).thenReturn(new Date());
-        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenReturn(
-            this.objectMetadata);
+        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenReturn(this.objectMetadata);
 
         assertFalse(this.wagon.isRemoteResourceNewer(FILE_NAME, Long.MAX_VALUE));
     }
 
     @Test
     public void isRemoteResourceNewerNoLastModified() throws ResourceDoesNotExistException {
-        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenReturn(
-            this.objectMetadata);
+        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenReturn(this.objectMetadata);
 
         assertTrue(this.wagon.isRemoteResourceNewer(FILE_NAME, 0));
     }
 
     @Test(expected = ResourceDoesNotExistException.class)
     public void isRemoteResourceNewerDoesNotExist() throws ResourceDoesNotExistException {
-        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenThrow(
-            new AmazonServiceException(""));
+        when(this.amazonS3.getObjectMetadata(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenThrow(new AmazonServiceException(""));
         this.wagon.isRemoteResourceNewer(FILE_NAME, 0);
     }
 
     @Test
     public void listDirectoryTopLevel() throws ResourceDoesNotExistException {
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest() //
-        .withBucketName(BUCKET_NAME) //
-        .withPrefix(BASE_DIRECTORY) //
-        .withDelimiter("/");
+                .withBucketName(BUCKET_NAME) //
+                .withPrefix(BASE_DIRECTORY) //
+                .withDelimiter("/");
 
         when(this.amazonS3.listObjects(eq(listObjectsRequest))).thenReturn(this.objectListing);
         when(this.objectListing.isTruncated()).thenReturn(true, false);
@@ -172,9 +171,9 @@ public final class SimpleStorageServiceWagonIntegrationTests {
     @Test
     public void listDirectoryTopNested() throws ResourceDoesNotExistException {
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest() //
-        .withBucketName(BUCKET_NAME) //
-        .withPrefix(BASE_DIRECTORY + "release/") //
-        .withDelimiter("/");
+                .withBucketName(BUCKET_NAME) //
+                .withPrefix(BASE_DIRECTORY + "release/") //
+                .withDelimiter("/");
 
         when(this.amazonS3.listObjects(eq(listObjectsRequest))).thenReturn(this.objectListing);
         when(this.objectListing.isTruncated()).thenReturn(true, false);
@@ -190,9 +189,9 @@ public final class SimpleStorageServiceWagonIntegrationTests {
     @Test(expected = ResourceDoesNotExistException.class)
     public void listDirectoryDoesNotExist() throws ResourceDoesNotExistException {
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest() //
-        .withBucketName(BUCKET_NAME) //
-        .withPrefix(BASE_DIRECTORY + "frogs") //
-        .withDelimiter("/");
+                .withBucketName(BUCKET_NAME) //
+                .withPrefix(BASE_DIRECTORY + "frogs") //
+                .withDelimiter("/");
 
         when(this.amazonS3.listObjects(eq(listObjectsRequest))).thenThrow(new AmazonServiceException(""));
         this.wagon.listDirectory("frogs");
@@ -200,8 +199,10 @@ public final class SimpleStorageServiceWagonIntegrationTests {
 
     @Test
     public void getResource() throws TransferFailedException, FileNotFoundException, ResourceDoesNotExistException {
-        when(this.amazonS3.getObject(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenReturn(this.s3Object);
-        when(this.s3Object.getObjectContent()).thenReturn(new S3ObjectInputStream(new FileInputStream("src/test/resources/test.txt"), null));
+        when(this.amazonS3.getObject(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenReturn(this.s3Object);
+        when(this.s3Object.getObjectContent())
+                .thenReturn(new S3ObjectInputStream(new FileInputStream("src/test/resources/test.txt"), null));
 
         File target = new File("target/robots.txt");
         target.delete();
@@ -214,8 +215,8 @@ public final class SimpleStorageServiceWagonIntegrationTests {
 
     @Test(expected = ResourceDoesNotExistException.class)
     public void getResourceSourceDoesNotExist() throws TransferFailedException, ResourceDoesNotExistException {
-        when(this.amazonS3.getObject(SimpleStorageServiceWagonIntegrationTests.BUCKET_NAME, BASE_DIRECTORY + FILE_NAME)).thenThrow(
-            new AmazonServiceException(""));
+        when(this.amazonS3.getObject(SimpleStorageServiceWagonIntegrationTest.BUCKET_NAME,
+                BASE_DIRECTORY + FILE_NAME)).thenThrow(new AmazonServiceException(""));
         File target = new File("target/robots.txt");
         this.wagon.getResource(FILE_NAME, target, this.transferProgress);
     }
@@ -243,7 +244,6 @@ public final class SimpleStorageServiceWagonIntegrationTests {
         assertEquals(BUCKET_NAME, fileRequest.getBucketName());
         assertEquals(BASE_DIRECTORY + FILE_NAME, fileRequest.getKey());
         assertNotNull(fileRequest.getInputStream());
-        assertEquals(CannedAccessControlList.PublicRead, fileRequest.getCannedAcl());
 
         ObjectMetadata objectMetadata = fileRequest.getMetadata();
         assertNotNull(objectMetadata);
@@ -260,8 +260,8 @@ public final class SimpleStorageServiceWagonIntegrationTests {
 
     @Test(expected = TransferFailedException.class)
     public void putResourcePutException() throws TransferFailedException, ResourceDoesNotExistException {
-        when(this.amazonS3.putObject(any(PutObjectRequest.class))).thenReturn((PutObjectResult) null, (PutObjectResult) null).thenThrow(
-            new AmazonServiceException(""));
+        when(this.amazonS3.putObject(any(PutObjectRequest.class))).thenReturn(null, (PutObjectResult) null)
+                .thenThrow(new AmazonServiceException(""));
         File file = new File("src/test/resources/test.txt");
         this.wagon.putResource(file, FILE_NAME, this.transferProgress);
     }

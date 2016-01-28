@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 the original author or authors.
+ * Copyright 2010-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,24 +15,6 @@
  */
 
 package org.springframework.build.aws.maven;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 import org.apache.maven.wagon.ConnectionException;
 import org.apache.maven.wagon.ResourceDoesNotExistException;
@@ -50,7 +32,18 @@ import org.apache.maven.wagon.repository.Repository;
 import org.apache.maven.wagon.resource.Resource;
 import org.junit.Test;
 
-public final class AbstraktWagonTests {
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.*;
+
+public final class AbstractWagonTest {
 
     private final SessionListenerSupport sessionListenerSupport = mock(SessionListenerSupport.class);
 
@@ -129,7 +122,8 @@ public final class AbstraktWagonTests {
 
         assertEquals(this.repository, this.wagon.getRepository());
         verify(this.sessionListenerSupport).fireSessionOpening();
-        verify(this.wagon).connectToRepository(eq(this.repository), (AuthenticationInfo) isNull(), any(NullProtectingProxyInfoProvider.class));
+        verify(this.wagon).connectToRepository(eq(this.repository), (AuthenticationInfo) isNull(),
+                any(NullProtectingProxyInfoProvider.class));
         verify(this.sessionListenerSupport).fireSessionLoggedIn();
         verify(this.sessionListenerSupport).fireSessionOpened();
     }
@@ -162,14 +156,16 @@ public final class AbstraktWagonTests {
 
         assertEquals(this.repository, this.wagon.getRepository());
         verify(this.sessionListenerSupport).fireSessionOpening();
-        verify(this.wagon).connectToRepository(eq(this.repository), eq(this.authenticationInfo), any(NullProtectingProxyInfoProvider.class));
+        verify(this.wagon).connectToRepository(eq(this.repository), eq(this.authenticationInfo),
+                any(NullProtectingProxyInfoProvider.class));
         verify(this.sessionListenerSupport).fireSessionLoggedIn();
         verify(this.sessionListenerSupport).fireSessionOpened();
 
     }
 
     @Test
-    public void connectRepositoryAuthenticationInfoProxyInfoProvider() throws ConnectionException, AuthenticationException {
+    public void connectRepositoryAuthenticationInfoProxyInfoProvider() throws ConnectionException,
+            AuthenticationException {
         this.wagon.connect(this.repository, this.authenticationInfo, this.proxyInfoProvider);
 
         assertEquals(this.repository, this.wagon.getRepository());
@@ -181,7 +177,8 @@ public final class AbstraktWagonTests {
 
     @Test
     public void connectConnectionException() throws ConnectionException, AuthenticationException {
-        doThrow(new ConnectionException("")).when(this.wagon).connectToRepository(this.repository, this.authenticationInfo, this.proxyInfoProvider);
+        doThrow(new ConnectionException("")).when(this.wagon).connectToRepository(this.repository,
+                this.authenticationInfo, this.proxyInfoProvider);
 
         try {
             this.wagon.connect(this.repository, this.authenticationInfo, this.proxyInfoProvider);
@@ -195,8 +192,8 @@ public final class AbstraktWagonTests {
 
     @Test
     public void connectAuthenticationException() throws ConnectionException, AuthenticationException {
-        doThrow(new AuthenticationException("")).when(this.wagon).connectToRepository(this.repository, this.authenticationInfo,
-            this.proxyInfoProvider);
+        doThrow(new AuthenticationException("")).when(this.wagon).connectToRepository(this.repository,
+                this.authenticationInfo, this.proxyInfoProvider);
 
         try {
             this.wagon.connect(this.repository, this.authenticationInfo, this.proxyInfoProvider);
@@ -243,7 +240,8 @@ public final class AbstraktWagonTests {
     }
 
     @Test
-    public void getTransferFailedException() throws ResourceDoesNotExistException, AuthorizationException, TransferFailedException {
+    public void getTransferFailedException() throws ResourceDoesNotExistException, AuthorizationException,
+            TransferFailedException {
         TransferFailedException exception = new TransferFailedException("");
         doThrow(exception).when(this.wagon).getResource(eq("foo"), eq(new File("bar")), any(TransferProgress.class));
 
@@ -253,12 +251,14 @@ public final class AbstraktWagonTests {
         } catch (TransferFailedException e) {
             verify(this.transferListenerSupport).fireTransferInitiated(new Resource("foo"), TransferEvent.REQUEST_GET);
             verify(this.transferListenerSupport).fireTransferStarted(new Resource("foo"), TransferEvent.REQUEST_GET);
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         ResourceDoesNotExistException exception = new ResourceDoesNotExistException("");
         doThrow(exception).when(this.wagon).getResource(eq("foo"), eq(new File("bar")), any(TransferProgress.class));
 
@@ -268,12 +268,14 @@ public final class AbstraktWagonTests {
         } catch (ResourceDoesNotExistException e) {
             verify(this.transferListenerSupport).fireTransferInitiated(new Resource("foo"), TransferEvent.REQUEST_GET);
             verify(this.transferListenerSupport).fireTransferStarted(new Resource("foo"), TransferEvent.REQUEST_GET);
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         AuthorizationException exception = new AuthorizationException("");
         doThrow(exception).when(this.wagon).getResource(eq("foo"), eq(new File("bar")), any(TransferProgress.class));
 
@@ -283,19 +285,21 @@ public final class AbstraktWagonTests {
         } catch (AuthorizationException e) {
             verify(this.transferListenerSupport).fireTransferInitiated(new Resource("foo"), TransferEvent.REQUEST_GET);
             verify(this.transferListenerSupport).fireTransferStarted(new Resource("foo"), TransferEvent.REQUEST_GET);
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
     public void getFileList() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
-        when(this.wagon.listDirectory("foo")).thenReturn(Arrays.<String> asList());
+        when(this.wagon.listDirectory("foo")).thenReturn(Arrays.<String>asList());
 
-        assertEquals(Arrays.asList(), this.wagon.getFileList("foo"));
+        assertEquals(Arrays.<String>asList(), this.wagon.getFileList("foo"));
     }
 
     @Test
-    public void getFileListTransferFailedException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getFileListTransferFailedException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         TransferFailedException exception = new TransferFailedException("");
         when(this.wagon.listDirectory("foo")).thenThrow(exception);
 
@@ -303,12 +307,14 @@ public final class AbstraktWagonTests {
             this.wagon.getFileList("foo");
             fail();
         } catch (TransferFailedException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getFileResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getFileResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         ResourceDoesNotExistException exception = new ResourceDoesNotExistException("");
         when(this.wagon.listDirectory("foo")).thenThrow(exception);
 
@@ -316,12 +322,14 @@ public final class AbstraktWagonTests {
             this.wagon.getFileList("foo");
             fail();
         } catch (ResourceDoesNotExistException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getFileListAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getFileListAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         AuthorizationException exception = new AuthorizationException("");
         when(this.wagon.listDirectory("foo")).thenThrow(exception);
 
@@ -329,18 +337,21 @@ public final class AbstraktWagonTests {
             this.wagon.getFileList("foo");
             fail();
         } catch (AuthorizationException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getIfNewerOlder() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getIfNewerOlder() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         when(this.wagon.isRemoteResourceNewer("foo", 0)).thenReturn(false);
         assertFalse(this.wagon.getIfNewer("foo", new File("bar"), 0));
     }
 
     @Test
-    public void getIfNewerNewer() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getIfNewerNewer() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         when(this.wagon.isRemoteResourceNewer("foo", 0)).thenReturn(true);
 
         assertTrue(this.wagon.getIfNewer("foo", new File("bar"), 0));
@@ -348,7 +359,8 @@ public final class AbstraktWagonTests {
     }
 
     @Test
-    public void getIfNewerTransferFailedException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getIfNewerTransferFailedException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         TransferFailedException exception = new TransferFailedException("");
         when(this.wagon.isRemoteResourceNewer("foo", 0)).thenThrow(exception);
 
@@ -356,12 +368,14 @@ public final class AbstraktWagonTests {
             this.wagon.getIfNewer("foo", new File("bar"), 0);
             fail();
         } catch (TransferFailedException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getIfNewerResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getIfNewerResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         ResourceDoesNotExistException exception = new ResourceDoesNotExistException("");
         when(this.wagon.isRemoteResourceNewer("foo", 0)).thenThrow(exception);
 
@@ -369,12 +383,14 @@ public final class AbstraktWagonTests {
             this.wagon.getIfNewer("foo", new File("bar"), 0);
             fail();
         } catch (ResourceDoesNotExistException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
     @Test
-    public void getIfNewerAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void getIfNewerAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         AuthorizationException exception = new AuthorizationException("");
         when(this.wagon.isRemoteResourceNewer("foo", 0)).thenThrow(exception);
 
@@ -382,7 +398,8 @@ public final class AbstraktWagonTests {
             this.wagon.getIfNewer("foo", new File("bar"), 0);
             fail();
         } catch (AuthorizationException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
@@ -402,7 +419,8 @@ public final class AbstraktWagonTests {
     }
 
     @Test
-    public void putTransferFailedException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void putTransferFailedException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         TransferFailedException exception = new TransferFailedException("");
         doThrow(exception).when(this.wagon).putResource(eq(new File("foo")), eq("bar"), any(TransferProgress.class));
 
@@ -412,12 +430,14 @@ public final class AbstraktWagonTests {
         } catch (TransferFailedException e) {
             verify(this.transferListenerSupport).fireTransferInitiated(new Resource("bar"), TransferEvent.REQUEST_PUT);
             verify(this.transferListenerSupport).fireTransferStarted(new Resource("bar"), TransferEvent.REQUEST_PUT);
-            verify(this.transferListenerSupport).fireTransferError(new Resource("bar"), TransferEvent.REQUEST_PUT, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("bar"), TransferEvent.REQUEST_PUT,
+                    exception);
         }
     }
 
     @Test
-    public void putResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void putResourceDoesNotExistException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         ResourceDoesNotExistException exception = new ResourceDoesNotExistException("");
         doThrow(exception).when(this.wagon).putResource(eq(new File("foo")), eq("bar"), any(TransferProgress.class));
 
@@ -427,12 +447,14 @@ public final class AbstraktWagonTests {
         } catch (ResourceDoesNotExistException e) {
             verify(this.transferListenerSupport).fireTransferInitiated(new Resource("bar"), TransferEvent.REQUEST_PUT);
             verify(this.transferListenerSupport).fireTransferStarted(new Resource("bar"), TransferEvent.REQUEST_PUT);
-            verify(this.transferListenerSupport).fireTransferError(new Resource("bar"), TransferEvent.REQUEST_PUT, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("bar"), TransferEvent.REQUEST_PUT,
+                    exception);
         }
     }
 
     @Test
-    public void putAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void putAuthorizationException() throws TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         AuthorizationException exception = new AuthorizationException("");
         doThrow(exception).when(this.wagon).putResource(eq(new File("foo")), eq("bar"), any(TransferProgress.class));
 
@@ -442,12 +464,14 @@ public final class AbstraktWagonTests {
         } catch (AuthorizationException e) {
             verify(this.transferListenerSupport).fireTransferInitiated(new Resource("bar"), TransferEvent.REQUEST_PUT);
             verify(this.transferListenerSupport).fireTransferStarted(new Resource("bar"), TransferEvent.REQUEST_PUT);
-            verify(this.transferListenerSupport).fireTransferError(new Resource("bar"), TransferEvent.REQUEST_PUT, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("bar"), TransferEvent.REQUEST_PUT,
+                    exception);
         }
     }
 
     @Test
-    public void putDirectory() throws IOException, TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    public void putDirectory() throws IOException, TransferFailedException, ResourceDoesNotExistException,
+            AuthorizationException {
         File directory = new File("target/test");
         directory.mkdirs();
         File file = new File(directory, "test.txt");
@@ -455,10 +479,14 @@ public final class AbstraktWagonTests {
 
         this.wagon.putDirectory(directory, "foo");
 
-        verify(this.transferListenerSupport).fireTransferInitiated(new Resource("foo/test.txt"), TransferEvent.REQUEST_PUT);
-        verify(this.transferListenerSupport).fireTransferStarted(new Resource("foo/test.txt"), TransferEvent.REQUEST_PUT);
-        verify(this.wagon).putResource(eq(new File("target/test/test.txt")), eq("foo/test.txt"), any(TransferProgress.class));
-        verify(this.transferListenerSupport).fireTransferCompleted(new Resource("foo/test.txt"), TransferEvent.REQUEST_PUT);
+        verify(this.transferListenerSupport).fireTransferInitiated(new Resource("foo/test.txt"),
+                TransferEvent.REQUEST_PUT);
+        verify(this.transferListenerSupport).fireTransferStarted(new Resource("foo/test.txt"),
+                TransferEvent.REQUEST_PUT);
+        verify(this.wagon).putResource(eq(new File("target/test/test.txt")), eq("foo/test.txt"),
+                any(TransferProgress.class));
+        verify(this.transferListenerSupport).fireTransferCompleted(new Resource("foo/test.txt"),
+                TransferEvent.REQUEST_PUT);
     }
 
     @Test
@@ -476,7 +504,8 @@ public final class AbstraktWagonTests {
             this.wagon.resourceExists("foo");
             fail();
         } catch (AuthorizationException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
@@ -489,7 +518,8 @@ public final class AbstraktWagonTests {
             this.wagon.resourceExists("foo");
             fail();
         } catch (TransferFailedException e) {
-            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET, exception);
+            verify(this.transferListenerSupport).fireTransferError(new Resource("foo"), TransferEvent.REQUEST_GET,
+                    exception);
         }
     }
 
@@ -525,17 +555,19 @@ public final class AbstraktWagonTests {
         }
 
         protected StubWagon(boolean supportsDirectoryCopy, SessionListenerSupport sessionListenerSupport,
-            TransferListenerSupport transferListenerSupport) {
+                            TransferListenerSupport transferListenerSupport) {
             super(supportsDirectoryCopy, sessionListenerSupport, transferListenerSupport);
         }
 
         @Override
-        protected void connectToRepository(Repository source, AuthenticationInfo authenticationInfo, ProxyInfoProvider proxyInfo)
-            throws ConnectionException, AuthenticationException {
+        protected void connectToRepository(Repository source, AuthenticationInfo authenticationInfo,
+                                           ProxyInfoProvider proxyInfo) throws ConnectionException,
+                AuthenticationException {
         }
 
         @Override
-        protected boolean doesRemoteResourceExist(String resourceName) throws TransferFailedException, AuthorizationException {
+        protected boolean doesRemoteResourceExist(String resourceName) throws TransferFailedException,
+                AuthorizationException {
             return false;
         }
 
@@ -544,24 +576,25 @@ public final class AbstraktWagonTests {
         }
 
         @Override
-        protected void getResource(String resourceName, File destination, TransferProgress progress) throws TransferFailedException,
-            ResourceDoesNotExistException, AuthorizationException {
+        protected void getResource(String resourceName, File destination, TransferProgress progress)
+                throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
         }
 
         @Override
-        protected boolean isRemoteResourceNewer(String resourceName, long timestamp) throws TransferFailedException, ResourceDoesNotExistException,
-            AuthorizationException {
+        protected boolean isRemoteResourceNewer(String resourceName, long timestamp) throws TransferFailedException,
+                ResourceDoesNotExistException, AuthorizationException {
             return false;
         }
 
         @Override
-        protected List<String> listDirectory(String directory) throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+        protected List<String> listDirectory(String directory) throws TransferFailedException,
+                ResourceDoesNotExistException, AuthorizationException {
             return null;
         }
 
         @Override
-        protected void putResource(File source, String destination, TransferProgress progress) throws TransferFailedException,
-            ResourceDoesNotExistException, AuthorizationException {
+        protected void putResource(File source, String destination, TransferProgress progress)
+                throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
         }
 
     }

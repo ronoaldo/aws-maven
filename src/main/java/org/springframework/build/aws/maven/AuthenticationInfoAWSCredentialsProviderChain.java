@@ -16,24 +16,18 @@
 
 package org.springframework.build.aws.maven;
 
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import org.apache.maven.wagon.authentication.AuthenticationInfo;
 
-final class AuthenticationInfoAWSCredentials implements AWSCredentials {
+final class AuthenticationInfoAWSCredentialsProviderChain extends AWSCredentialsProviderChain {
 
-    private final AuthenticationInfo authenticationInfo;
-
-    AuthenticationInfoAWSCredentials(AuthenticationInfo authenticationInfo) {
-        this.authenticationInfo = authenticationInfo;
-    }
-
-    @Override
-    public String getAWSAccessKeyId() {
-        return this.authenticationInfo.getUserName();
-    }
-
-    @Override
-    public String getAWSSecretKey() {
-        return this.authenticationInfo.getPassword();
+    AuthenticationInfoAWSCredentialsProviderChain(AuthenticationInfo authenticationInfo) {
+        super(new EnvironmentVariableCredentialsProvider(),
+                new SystemPropertiesCredentialsProvider(),
+                new InstanceProfileCredentialsProvider(),
+                new AuthenticationInfoAWSCredentialsProvider(authenticationInfo));
     }
 }

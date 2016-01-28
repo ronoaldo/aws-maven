@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 the original author or authors.
+ * Copyright 2010-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package org.springframework.build.aws.maven;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-
 import org.apache.maven.wagon.events.TransferEvent;
 import org.apache.maven.wagon.resource.Resource;
 import org.junit.Test;
 
-public final class TransferProgressTests {
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+public final class TransferProgressTest {
 
     private static final int REQUEST_TYPE = TransferEvent.REQUEST_GET;
 
@@ -31,7 +31,8 @@ public final class TransferProgressTests {
 
     private final TransferListenerSupport transferListenerSupport = mock(TransferListenerSupport.class);
 
-    private final StandardTransferProgress transferProgress = new StandardTransferProgress(this.resource, REQUEST_TYPE, this.transferListenerSupport);
+    private final StandardTransferProgress transferProgress = new StandardTransferProgress(this.resource, REQUEST_TYPE,
+            this.transferListenerSupport);
 
     @Test
     public void notifyProgress() {
